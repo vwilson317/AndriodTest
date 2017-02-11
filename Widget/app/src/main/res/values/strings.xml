@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">VW Lift App</string>
-    <string name="widget_button_text">Finish Set</string>
+    <string name="finish_set_button_text">Finish Set</string>
     <string name="next_button_text">Next</string>
-    <string name="set_button_text">Rep</string>
-    <string name="rep_button_text">Set</string>
+    <string name="rep_plus_button_text">Rep +</string>
+    <string name="rep_minus_button_text">Rep -</string>
 </resources>

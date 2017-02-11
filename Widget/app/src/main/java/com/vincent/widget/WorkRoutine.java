@@ -2,6 +2,8 @@ package com.vincent.widget;
 
 import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -11,32 +13,20 @@ import java.util.List;
 public class WorkRoutine {
     public String RountineName;
     public Exercise[] Excerises;
+    //TODO: use a configured value for the routine
+    public Integer TargetRepAmount = 8;
 
-    public Dictionary<Exercise, List<SetAndRepGroup>> CurrentWorkout;
+    public CurrentWorkout CurrentWorkout;
 
     public WorkRoutine(String name){
         RountineName = name;
+        CurrentWorkout = new CurrentWorkout();
 
         Excerises = new Exercise[]{
                 new Exercise("Chest Press"),
                 new Exercise("Dumbbell Flies"),
                 new Exercise("Dips")
         };
-    }
-
-    public void AddToCurrentWorkout(Exercise exercise, int setNum, int repNum){
-        List<SetAndRepGroup> possibleSetAndRep = CurrentWorkout.get(exercise);
-        if(possibleSetAndRep == null)
-        {
-            List<SetAndRepGroup> currentProgress = new ArrayList<SetAndRepGroup>();
-            currentProgress.add(new SetAndRepGroup(setNum, repNum));
-            CurrentWorkout.put(exercise, currentProgress);{
-            };
-        }
-        else
-        {
-            possibleSetAndRep.add(new SetAndRepGroup(setNum, repNum));
-        }
     }
 }
 
