@@ -9,6 +9,7 @@
         android:theme="@style/AppTheme">
         <receiver android:name="SimpleWidgetProvider" >
             <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_ENABLED" />
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider"
