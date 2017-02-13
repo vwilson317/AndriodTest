@@ -2,6 +2,7 @@ package com.vincent.widget;
 
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.ComponentName;
 import android.content.Context;
 import android.util.Log;
 import android.view.View;
@@ -11,8 +12,6 @@ import android.app.PendingIntent;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
-import java.util.Set;
-
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
 public class SimpleWidgetProvider extends AppWidgetProvider {
@@ -21,12 +20,21 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     private static final String FINISH_ACTION_NAME = "FINISH_ONCLICK";
     private static final String REP_PLUS_ACTION_NAME = "REP_PLUS_ONCLICK";
     private static final String REP_MINUS_ACTION_NAME = "REP_MINUS_ONCLICK";
+    private Integer currentRepCount;
+    private Exercise currentExercise;
+    private Integer currentExerciseIndex;
+
+    private static final Integer Configured_Rep_Count = 8;
 
     public SimpleWidgetProvider(){
         Log.w("*** SimpleWidget", "constuctor called");
 
         //TODO: make widget a collection for all configured workout routines
         this.routine = new WorkRoutine("Test Routine");
+        this.currentExerciseIndex = 0;
+        this.currentExercise = this.routine.Excerises[this.currentExerciseIndex];
+        //TODO: use a configuration vaule
+        this.currentRepCount = Configured_Rep_Count;
     }
 
     @Override
@@ -47,23 +55,13 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                         R.layout.simple_widget);
 
-                Exercise currentExercise = routine.Excerises[0];
                 Log.w("*** Exercise name", currentExercise.Name);
-                TextView currentExerciseTextView = (TextView)getView(context).findViewById(R.id.currentExcerise);
-                currentExerciseTextView.setText(currentExercise.Name);
-                Log.w("*** currentExerciseText", currentExerciseTextView.getText().toString());
                 setText(context, currentExercise, remoteViews);
 
-                PendingIntent nextIntent = getIntent(context, NEXT_ACTION_NAME, appWidgetIds);
-                PendingIntent finishIntent = getIntent(context, FINISH_ACTION_NAME, appWidgetIds);
-                PendingIntent repPlusIntent = getIntent(context, REP_PLUS_ACTION_NAME, appWidgetIds);
-                PendingIntent repMinusIntent = getIntent(context, REP_MINUS_ACTION_NAME, appWidgetIds);
-
-                PendingIntent updateIntent = getIntent(context, AppWidgetManager.ACTION_APPWIDGET_UPDATE, appWidgetIds);
-                remoteViews.setOnClickPendingIntent(R.id.actionButton, updateIntent);
-                remoteViews.setOnClickPendingIntent(R.id.finishSetButton, updateIntent);
-                remoteViews.setOnClickPendingIntent(R.id.repPlusButton, updateIntent);
-                remoteViews.setOnClickPendingIntent(R.id.repMinusButton, updateIntent);
+                PendingIntent nextIntent = getIntent(context, NEXT_ACTION_NAME, appWidgetIds, 0);
+                PendingIntent finishIntent = getIntent(context, FINISH_ACTION_NAME, appWidgetIds, 0);
+                PendingIntent repPlusIntent = getIntent(context, REP_PLUS_ACTION_NAME, appWidgetIds, 0);
+                PendingIntent repMinusIntent = getIntent(context, REP_MINUS_ACTION_NAME, appWidgetIds, 0);
 
                 remoteViews.setOnClickPendingIntent(R.id.actionButton, nextIntent);
                 remoteViews.setOnClickPendingIntent(R.id.finishSetButton, finishIntent);
@@ -90,38 +88,25 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     }
 
     private void setText(Context context, Exercise currentExercise, RemoteViews remoteViews) {
-        int repAmount = getRepAmount(null, context);
         int currentSet = routine.CurrentWorkout.GetCurrentSet(currentExercise);
-        String text = "Set #" + currentSet + " " + currentExercise.Name + "Reps # " + repAmount;
+        String text = "Set #" + currentSet + " " + currentExercise.Name + "Reps # " + currentRepCount;
+        Log.w("*** setText", text);
         remoteViews.setTextViewText(R.id.displayTextView, text);
+
     }
 
-    private int getRepAmount(TextView textView, Context context) {
-        if(textView == null && context != null){
-            View view = getView(context);
-            textView = (TextView)view.findViewById(R.id.currentRepAmount);
-        }
-        String repAmountStr = textView.getText().toString();
-        return Integer.parseInt(repAmountStr);
-    }
-
-    private PendingIntent getIntent(Context context, String actionName, int[] appWidgetIds){
+    private PendingIntent getIntent(Context context, String actionName, int[] appWidgetIds, int requestCode){
         Intent intent = new Intent(context, SimpleWidgetProvider.class);
         intent.setAction(actionName);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         return pendingIntent;
     }
 
-    private void IncreaseReps(Context context){
-        View view = getView(context);
-        TextView currentRepAmountTextView = (TextView)view.findViewById(R.id.currentRepAmount);
-
-        Integer currentRepCount = getRepAmount(currentRepAmountTextView, null);
+    private void increaseReps(){
         currentRepCount++;
-        currentRepAmountTextView.setText(currentRepCount.toString());
     }
 
     private View getView(Context context){
@@ -130,20 +115,18 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         return view;
     }
 
-    private Exercise getCurrentExercise(View view){
-        TextView currentExceriseTextView = (TextView)view.findViewById(R.id.currentExcerise);
-        String currentExceriseName = currentExceriseTextView.getText().toString();
-        Log.w("*** getCurrentExercise", currentExceriseName);
-        Exercise exercise = null;
-        Set<Exercise> exercises = routine.CurrentWorkout.ExerciseRepLookup.keySet();
-        for (Exercise currentExcerise : exercises)
-        {
-            if(currentExcerise.Name == currentExceriseName)
-            {
-                exercise = currentExcerise;
-            }
+    private void onNextClickHandler(){
+        //Reset rep count
+        if(this.currentExerciseIndex > routine.Excerises.length){
+            this.currentExerciseIndex = 0;
         }
-        return exercise;
+        currentExerciseIndex++;
+        currentExercise = routine.Excerises[this.currentExerciseIndex];
+        currentRepCount = Configured_Rep_Count;
+    }
+
+    private void onFinishClickHandler(){
+        this.routine.CurrentWorkout.FinishSet(currentExercise, currentRepCount);
     }
 
     @Override
@@ -154,24 +137,31 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.simple_widget);
 
-        super.onReceive(context, intent);
-
         switch (actionName){
             case NEXT_ACTION_NAME:
+                this.onNextClickHandler();
                 break;
             case FINISH_ACTION_NAME:
+                this.onFinishClickHandler();
                 break;
             case REP_PLUS_ACTION_NAME:
-                this.IncreaseReps(context);
+                this.increaseReps();
                 break;
             case REP_MINUS_ACTION_NAME:
                 break;
         }
 
-        View view = getView(context);
-        Exercise currentExercise = getCurrentExercise(view);
-        Log.w("*** currentExercise", (currentExercise == null) ? "NUll": currentExercise.Name);
-        if(currentExercise != null)
-            setText(context, currentExercise, remoteViews);
+        ComponentName componentName = new ComponentName(context, SimpleWidgetProvider.class);
+        AppWidgetManager instance = AppWidgetManager.getInstance(context);
+//        int[] appIds = instance.getAppWidgetIds(componentName);
+        instance.updateAppWidget(componentName, remoteViews);
+
+        super.onReceive(context, intent);
+
+//        Log.w("*** currentExercise", (currentExercise == null) ? "NUll": currentExercise.Name);
+//        if(currentExercise != null)
+//            setText(context, currentExercise, remoteViews);
+
+        //context.sendBroadcast(new Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE));
     }
 }
