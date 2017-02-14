@@ -13,6 +13,9 @@ import android.app.PendingIntent;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
 public class SimpleWidgetProvider extends AppWidgetProvider {
@@ -37,6 +40,10 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         Log.w("*** SimpleWidget", "onUpdate called");
         final int count = appWidgetIds.length;
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("routine");
+
+        myRef.setValue(this.routine);
 
         //TODO: make widget a collection for all configured workout routines
 //        this.routine = new WorkRoutine("Test Routine");
