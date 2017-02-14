@@ -29,7 +29,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     private static final Integer Configured_Rep_Count = 8;
 
     private WorkRoutine routine = new WorkRoutine("Test Routine");
-    private Exercise currentExercise = this.routine.Excerises[0];
+    private Exercise currentExercise = this.routine.Excerises.get(0);
 
     @Override
     public void onEnabled(Context context){
@@ -39,6 +39,11 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         Log.w("*** SimpleWidget", "onUpdate called");
+
+        SharedPreferences sharedPreferences = getSharedPreferences(context);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        clear(editor);
+
         final int count = appWidgetIds.length;
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("routine");
@@ -46,8 +51,6 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         myRef.setValue(this.routine);
 
         //TODO: make widget a collection for all configured workout routines
-//        this.routine = new WorkRoutine("Test Routine");
-//        this.currentExercise = this.routine.Excerises[this.currentExerciseIndex];
 
         for (int i = 0; i < count; i++) {
             int widgetId = appWidgetIds[i];
@@ -132,7 +135,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         //Reset rep count
         currentExerciseIndex++;
 
-        if(currentExerciseIndex > routine.Excerises.length){
+        if(currentExerciseIndex > routine.Excerises.size() -1){
             currentExerciseIndex = 0;
         }
 
@@ -148,6 +151,17 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         this.routine.CurrentWorkout.FinishSet(currentExercise, currentRepCount);
     }
 
+    private void clear(SharedPreferences.Editor editor){
+        editor.clear();
+        editor.commit();
+    }
+
+    private SharedPreferences getSharedPreferences(Context context){
+        String perfFileStr = context.getResources().getString(R.string.perf_file);
+        SharedPreferences sharedPreferences = context.getSharedPreferences(perfFileStr, context.MODE_PRIVATE);
+        return sharedPreferences;
+    }
+
     @Override
     public void onReceive(Context context, Intent intent){
         String actionName = intent.getAction();
@@ -156,14 +170,17 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.simple_widget);
 
-        String perfFileStr = context.getResources().getString(R.string.perf_file);
-        SharedPreferences sharedPreferences = context.getSharedPreferences(perfFileStr, context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences(context);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
         Integer defaultRepCount = context.getResources().getInteger(R.integer.default_rep_count);
         Integer currentRepCount = sharedPreferences.getInt(CURRENT_REP_COUNT, defaultRepCount);
         Integer currentExerciseIndex = sharedPreferences.getInt(CURRENT_EXERCISE_INDEX, 0);
-        Exercise currentExercise = this.routine.Excerises[currentExerciseIndex];
+
+        Exercise currentExercise = null;
+        if(currentExerciseIndex <= this.routine.Excerises.size() -1){
+           currentExercise = this.routine.Excerises.get(currentExerciseIndex);
+        }
 
         switch (actionName){
             case NEXT_ACTION_NAME:
