@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -15,27 +16,17 @@ import android.view.LayoutInflater;
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
 public class SimpleWidgetProvider extends AppWidgetProvider {
-    private final WorkRoutine routine;
     private static final String NEXT_ACTION_NAME = "NEXT_ONCLICK";
     private static final String FINISH_ACTION_NAME = "FINISH_ONCLICK";
     private static final String REP_PLUS_ACTION_NAME = "REP_PLUS_ONCLICK";
     private static final String REP_MINUS_ACTION_NAME = "REP_MINUS_ONCLICK";
-    private Integer currentRepCount;
-    private Exercise currentExercise;
-    private Integer currentExerciseIndex;
 
+    private static final String CURRENT_REP_COUNT = "currentRepCount";
+    private static final String CURRENT_EXERCISE_INDEX = "currentExerciseIndex";
     private static final Integer Configured_Rep_Count = 8;
 
-    public SimpleWidgetProvider(){
-        Log.w("*** SimpleWidget", "constuctor called");
-
-        //TODO: make widget a collection for all configured workout routines
-        this.routine = new WorkRoutine("Test Routine");
-        this.currentExerciseIndex = 0;
-        this.currentExercise = this.routine.Excerises[this.currentExerciseIndex];
-        //TODO: use a configuration vaule
-        this.currentRepCount = Configured_Rep_Count;
-    }
+    private WorkRoutine routine = new WorkRoutine("Test Routine");
+    private Exercise currentExercise = this.routine.Excerises[0];
 
     @Override
     public void onEnabled(Context context){
@@ -45,18 +36,20 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         Log.w("*** SimpleWidget", "onUpdate called");
-
         final int count = appWidgetIds.length;
+
+        //TODO: make widget a collection for all configured workout routines
+//        this.routine = new WorkRoutine("Test Routine");
+//        this.currentExercise = this.routine.Excerises[this.currentExerciseIndex];
 
         for (int i = 0; i < count; i++) {
             int widgetId = appWidgetIds[i];
             try{
-                //int number = new Random().nextInt((routine.Excerises.length - 1) + 1);
                 RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                         R.layout.simple_widget);
 
-                Log.w("*** Exercise name", currentExercise.Name);
-                setText(context, currentExercise, remoteViews);
+                Log.w("*** Exercise name", this.currentExercise.Name);
+                setText(this.currentExercise, Configured_Rep_Count,remoteViews);
 
                 PendingIntent nextIntent = getIntent(context, NEXT_ACTION_NAME, appWidgetIds, 0);
                 PendingIntent finishIntent = getIntent(context, FINISH_ACTION_NAME, appWidgetIds, 0);
@@ -87,12 +80,12 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    private void setText(Context context, Exercise currentExercise, RemoteViews remoteViews) {
-        int currentSet = routine.CurrentWorkout.GetCurrentSet(currentExercise);
+    private void setText(Exercise currentExercise, Integer currentRepCount, RemoteViews remoteViews) {
+        //TODO: use db to store current workout
+        int currentSet = this.routine.CurrentWorkout.GetCurrentSet(currentExercise);
         String text = "Set #" + currentSet + " " + currentExercise.Name + "Reps # " + currentRepCount;
         Log.w("*** setText", text);
         remoteViews.setTextViewText(R.id.displayTextView, text);
-
     }
 
     private PendingIntent getIntent(Context context, String actionName, int[] appWidgetIds, int requestCode){
@@ -105,8 +98,21 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         return pendingIntent;
     }
 
-    private void increaseReps(){
-        currentRepCount++;
+    private void increaseReps(Integer currentRepCount, SharedPreferences.Editor editor){
+        int repUpperBound = 20;
+        if(currentRepCount < repUpperBound){
+            currentRepCount++;
+            editor.putInt(CURRENT_REP_COUNT, currentRepCount);
+            editor.apply();
+        }
+    }
+
+    private void decreaseReps(Integer currentRepCount, SharedPreferences.Editor editor) {
+        if(currentRepCount > 0){
+            currentRepCount--;
+            editor.putInt(CURRENT_REP_COUNT, currentRepCount);
+            editor.apply();
+        }
     }
 
     private View getView(Context context){
@@ -115,17 +121,23 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         return view;
     }
 
-    private void onNextClickHandler(){
+    private void onNextClickHandler(Integer currentExerciseIndex, SharedPreferences.Editor editor){
         //Reset rep count
-        if(this.currentExerciseIndex > routine.Excerises.length){
-            this.currentExerciseIndex = 0;
-        }
         currentExerciseIndex++;
-        currentExercise = routine.Excerises[this.currentExerciseIndex];
-        currentRepCount = Configured_Rep_Count;
+
+        if(currentExerciseIndex > routine.Excerises.length){
+            currentExerciseIndex = 0;
+        }
+
+        editor.putInt(CURRENT_EXERCISE_INDEX, currentExerciseIndex);
+        editor.apply();
     }
 
-    private void onFinishClickHandler(){
+    private void onFinishClickHandler(Exercise currentExercise, int currentRepCount,
+                                      Integer defaultRepCount, SharedPreferences.Editor editor){
+        editor.putInt(CURRENT_REP_COUNT, defaultRepCount);
+        editor.apply();
+
         this.routine.CurrentWorkout.FinishSet(currentExercise, currentRepCount);
     }
 
@@ -137,31 +149,38 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                 R.layout.simple_widget);
 
+        String perfFileStr = context.getResources().getString(R.string.perf_file);
+        SharedPreferences sharedPreferences = context.getSharedPreferences(perfFileStr, context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        Integer defaultRepCount = context.getResources().getInteger(R.integer.default_rep_count);
+        Integer currentRepCount = sharedPreferences.getInt(CURRENT_REP_COUNT, defaultRepCount);
+        Integer currentExerciseIndex = sharedPreferences.getInt(CURRENT_EXERCISE_INDEX, 0);
+        Exercise currentExercise = this.routine.Excerises[currentExerciseIndex];
+
         switch (actionName){
             case NEXT_ACTION_NAME:
-                this.onNextClickHandler();
+                this.onNextClickHandler(currentExerciseIndex, editor);
                 break;
             case FINISH_ACTION_NAME:
-                this.onFinishClickHandler();
+                this.onFinishClickHandler(currentExercise, currentRepCount, defaultRepCount, editor);
                 break;
             case REP_PLUS_ACTION_NAME:
-                this.increaseReps();
+                this.increaseReps(currentRepCount, editor);
                 break;
             case REP_MINUS_ACTION_NAME:
+                this.decreaseReps(currentRepCount, editor);
                 break;
         }
 
-        ComponentName componentName = new ComponentName(context, SimpleWidgetProvider.class);
-        AppWidgetManager instance = AppWidgetManager.getInstance(context);
-//        int[] appIds = instance.getAppWidgetIds(componentName);
-        instance.updateAppWidget(componentName, remoteViews);
+        if(currentExercise != null){
+            setText(currentExercise, currentRepCount, remoteViews);
+
+            ComponentName componentName = new ComponentName(context, SimpleWidgetProvider.class);
+            AppWidgetManager instance = AppWidgetManager.getInstance(context);
+            instance.updateAppWidget(componentName, remoteViews);
+        }
 
         super.onReceive(context, intent);
-
-//        Log.w("*** currentExercise", (currentExercise == null) ? "NUll": currentExercise.Name);
-//        if(currentExercise != null)
-//            setText(context, currentExercise, remoteViews);
-
-        //context.sendBroadcast(new Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE));
     }
 }
