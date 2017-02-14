@@ -10,15 +10,23 @@ import android.view.View;
 import android.widget.RemoteViews;
 import android.content.Intent;
 import android.app.PendingIntent;
-import android.widget.TextView;
 import android.view.LayoutInflater;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
 public class SimpleWidgetProvider extends AppWidgetProvider {
+    private static final String DB_SERVER = "server/saving-data/workout-tracker";
+
     private static final String NEXT_ACTION_NAME = "NEXT_ONCLICK";
     private static final String FINISH_ACTION_NAME = "FINISH_ONCLICK";
     private static final String REP_PLUS_ACTION_NAME = "REP_PLUS_ONCLICK";
@@ -28,8 +36,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     private static final String CURRENT_EXERCISE_INDEX = "currentExerciseIndex";
     private static final Integer Configured_Rep_Count = 8;
 
-    private WorkRoutine routine = new WorkRoutine("Test Routine");
-    private Exercise currentExercise = this.routine.Excerises.get(0);
+    private OutterClass.WorkRoutine routine = new OutterClass.WorkRoutine("Test Routine");
 
     @Override
     public void onEnabled(Context context){
@@ -45,10 +52,17 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         clear(editor);
 
         final int count = appWidgetIds.length;
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("routine");
+        DatabaseReference myRef = getDbReference();
 
-        myRef.setValue(this.routine);
+        DatabaseReference routineRef = myRef.child("routines");
+        addValueEventHandler(myRef);
+
+        Collections.addAll(this.routine.Excerises, new OutterClass.Exercise[]{
+                new OutterClass.Exercise("Chest Press"),
+                new OutterClass.Exercise("Dumbbell Flys"),
+                new OutterClass.Exercise("Dips")});
+        routineRef.setValue(this.routine);
+        OutterClass.Exercise currentExercise = this.routine.Excerises.get(0);
 
         //TODO: make widget a collection for all configured workout routines
 
@@ -58,8 +72,8 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 RemoteViews remoteViews = new RemoteViews(context.getPackageName(),
                         R.layout.simple_widget);
 
-                Log.w("*** Exercise name", this.currentExercise.Name);
-                setText(this.currentExercise, Configured_Rep_Count,remoteViews);
+                Log.w("*** Exercise name", currentExercise.Name);
+                setText(currentExercise, Configured_Rep_Count,remoteViews);
 
                 PendingIntent nextIntent = getIntent(context, NEXT_ACTION_NAME, appWidgetIds, 0);
                 PendingIntent finishIntent = getIntent(context, FINISH_ACTION_NAME, appWidgetIds, 0);
@@ -90,7 +104,59 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    private void setText(Exercise currentExercise, Integer currentRepCount, RemoteViews remoteViews) {
+    private DatabaseReference getDbReference(){
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference(DB_SERVER);
+        return myRef;
+    }
+
+    private void addValueEventHandler(DatabaseReference dbRef){
+        dbRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                System.out.println("onDataChange called");
+//                GenericTypeIndicator<List<OutterClass.WorkRoutine>> type = new GenericTypeIndicator<List<OutterClass.WorkRoutine>>() {};
+//                List<OutterClass.WorkRoutine> routines = dataSnapshot.getValue(type);
+//                System.out.println(dataSnapshot.getKey());
+//                System.out.println("Key: " + dataSnapshot.getKey() + " RoutineName: " + routines.get(0).RoutineName);
+                List routines = new ArrayList<>();
+                for(DataSnapshot currentSnapshot: dataSnapshot.getChildren()){
+                    routines.add(currentSnapshot.getValue());
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+    }
+
+//    private void addChildEventHandler(DatabaseReference dbRef){
+//        dbRef.addChildEventListener(new ChildEventListener() {
+//            @Override
+//            public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
+//                Post newPost = dataSnapshot.getValue(OutterClass.WorkRoutine.class);
+//                System.out.println("Author: " + newPost.author);
+//                System.out.println("Title: " + newPost.title);
+//                System.out.println("Previous Post ID: " + prevChildKey);
+//            }
+//
+//            @Override
+//            public void onChildChanged(DataSnapshot dataSnapshot, String prevChildKey) {}
+//
+//            @Override
+//            public void onChildRemoved(DataSnapshot dataSnapshot) {}
+//
+//            @Override
+//            public void onChildMoved(DataSnapshot dataSnapshot, String prevChildKey) {}
+//
+//            @Override
+//            public void onCancelled(DatabaseError databaseError) {}
+//        });
+//    }
+
+    private void setText(OutterClass.Exercise currentExercise, Integer currentRepCount, RemoteViews remoteViews) {
         //TODO: use db to store current workout
         int currentSet = this.routine.CurrentWorkout.GetCurrentSet(currentExercise);
         String text = "Set #" + currentSet + " " + currentExercise.Name + "Reps # " + currentRepCount;
@@ -143,7 +209,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         editor.apply();
     }
 
-    private void onFinishClickHandler(Exercise currentExercise, int currentRepCount,
+    private void onFinishClickHandler(OutterClass.Exercise currentExercise, int currentRepCount,
                                       Integer defaultRepCount, SharedPreferences.Editor editor){
         editor.putInt(CURRENT_REP_COUNT, defaultRepCount);
         editor.apply();
@@ -177,7 +243,10 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         Integer currentRepCount = sharedPreferences.getInt(CURRENT_REP_COUNT, defaultRepCount);
         Integer currentExerciseIndex = sharedPreferences.getInt(CURRENT_EXERCISE_INDEX, 0);
 
-        Exercise currentExercise = null;
+        DatabaseReference dbRef = getDbReference();
+        addValueEventHandler(dbRef);
+
+        OutterClass.Exercise currentExercise = null;
         if(currentExerciseIndex <= this.routine.Excerises.size() -1){
            currentExercise = this.routine.Excerises.get(currentExerciseIndex);
         }
@@ -197,6 +266,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                 break;
         }
 
+        System.out.println("CurrentExercise: " + currentExercise);
         if(currentExercise != null){
             setText(currentExercise, currentRepCount, remoteViews);
 

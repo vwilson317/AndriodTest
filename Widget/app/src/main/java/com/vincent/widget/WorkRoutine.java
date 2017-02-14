@@ -1,33 +1,42 @@
 package com.vincent.widget;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.Hashtable;
 import java.util.List;
 
 /**
  * Created by vincent on 2/10/17.
  */
+class OutterClass{
+    public static class WorkRoutine {
+        public String RoutineName;
+        public List<Exercise> Excerises;
 
-public class WorkRoutine {
-    public String RountineName;
-    public List<Exercise> Excerises;
-    //TODO: use a configured value for the routine
-    public Integer TargetRepAmount = 8;
+        public CurrentWorkout CurrentWorkout;
 
-    public CurrentWorkout CurrentWorkout;
+        public WorkRoutine(){
+            RoutineName = "";
+            CurrentWorkout = new CurrentWorkout();
+            Excerises = new ArrayList<Exercise>();
+        }
 
-    public WorkRoutine(String name){
-        RountineName = name;
-        CurrentWorkout = new CurrentWorkout();
+        public WorkRoutine(String name) {
+            RoutineName = name;
+            CurrentWorkout = new CurrentWorkout();
 
-        Excerises = new ArrayList<Exercise>();
-        Collections.addAll(Excerises, new Exercise[]{
-                new Exercise("Chest Press"),
-                new Exercise("Dumbbell Flies"),
-                new Exercise("Dips")});
-        };
+            Excerises = new ArrayList<Exercise>();
+        }
     }
+
+    public static class Exercise {
+        public String Name;
+
+        public Exercise(){
+            Name = "";
+        }
+        public Exercise(String name){
+            Name = name;
+        }
+    }
+}
+
 
