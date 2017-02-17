@@ -17,10 +17,15 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 
 import static android.content.Context.LAYOUT_INFLATER_SERVICE;
 
@@ -34,9 +39,8 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
 
     private static final String CURRENT_REP_COUNT = "currentRepCount";
     private static final String CURRENT_EXERCISE_INDEX = "currentExerciseIndex";
+    private static final String CURRENT_ROUTINE = "currentRoutine";
     private static final Integer Configured_Rep_Count = 8;
-
-    private OutterClass.WorkRoutine routine = new OutterClass.WorkRoutine("Test Routine");
 
     @Override
     public void onEnabled(Context context){
@@ -54,15 +58,18 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         final int count = appWidgetIds.length;
         DatabaseReference myRef = getDbReference();
 
-        DatabaseReference routineRef = myRef.child("routines");
-        addValueEventHandler(myRef);
+        OutterClass.WorkRoutine routine = new OutterClass.WorkRoutine("Test Routine");
 
-        Collections.addAll(this.routine.Excerises, new OutterClass.Exercise[]{
+        //Save data to realtime db
+        //DatabaseReference routineRef = myRef.child("routines");
+        //addValueEventHandler(myRef);
+
+        boolean dips = Collections.addAll(routine.Excerises, new OutterClass.Exercise[]{
                 new OutterClass.Exercise("Chest Press"),
                 new OutterClass.Exercise("Dumbbell Flys"),
                 new OutterClass.Exercise("Dips")});
-        routineRef.setValue(this.routine);
-        OutterClass.Exercise currentExercise = this.routine.Excerises.get(0);
+        //routineRef.setValue(routine);
+        OutterClass.Exercise currentExercise = routine.Excerises.get(0);
 
         //TODO: make widget a collection for all configured workout routines
 
@@ -73,7 +80,8 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
                         R.layout.simple_widget);
 
                 Log.w("*** Exercise name", currentExercise.Name);
-                setText(currentExercise, Configured_Rep_Count,remoteViews);
+                int currentSet = routine.CurrentWorkout.GetCurrentSet(currentExercise);
+                setText(currentSet, currentExercise, Configured_Rep_Count,remoteViews);
 
                 PendingIntent nextIntent = getIntent(context, NEXT_ACTION_NAME, appWidgetIds, 0);
                 PendingIntent finishIntent = getIntent(context, FINISH_ACTION_NAME, appWidgetIds, 0);
@@ -156,9 +164,8 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
 //        });
 //    }
 
-    private void setText(OutterClass.Exercise currentExercise, Integer currentRepCount, RemoteViews remoteViews) {
+    private void setText(int currentSet, OutterClass.Exercise currentExercise, Integer currentRepCount, RemoteViews remoteViews) {
         //TODO: use db to store current workout
-        int currentSet = this.routine.CurrentWorkout.GetCurrentSet(currentExercise);
         String text = "Set #" + currentSet + " " + currentExercise.Name + "Reps # " + currentRepCount;
         Log.w("*** setText", text);
         remoteViews.setTextViewText(R.id.displayTextView, text);
@@ -175,6 +182,7 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     }
 
     private void increaseReps(Integer currentRepCount, SharedPreferences.Editor editor){
+        System.out.println("increase reps function call");
         int repUpperBound = 20;
         if(currentRepCount < repUpperBound){
             currentRepCount++;
@@ -197,11 +205,11 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         return view;
     }
 
-    private void onNextClickHandler(Integer currentExerciseIndex, SharedPreferences.Editor editor){
+    private void onNextClickHandler(Integer currentExerciseIndex, int routineExeriseCount, SharedPreferences.Editor editor){
         //Reset rep count
         currentExerciseIndex++;
 
-        if(currentExerciseIndex > routine.Excerises.size() -1){
+        if(currentExerciseIndex > routineExeriseCount -1){
             currentExerciseIndex = 0;
         }
 
@@ -209,12 +217,12 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         editor.apply();
     }
 
-    private void onFinishClickHandler(OutterClass.Exercise currentExercise, int currentRepCount,
+    private void onFinishClickHandler(OutterClass.WorkRoutine currentWorkoutRoutine,
+                                      OutterClass.Exercise currentExercise, int currentRepCount,
                                       Integer defaultRepCount, SharedPreferences.Editor editor){
         editor.putInt(CURRENT_REP_COUNT, defaultRepCount);
-        editor.apply();
 
-        this.routine.CurrentWorkout.FinishSet(currentExercise, currentRepCount);
+        currentWorkoutRoutine.CurrentWorkout.FinishSet(currentExercise, currentRepCount);
     }
 
     private void clear(SharedPreferences.Editor editor){
@@ -226,6 +234,18 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         String perfFileStr = context.getResources().getString(R.string.perf_file);
         SharedPreferences sharedPreferences = context.getSharedPreferences(perfFileStr, context.MODE_PRIVATE);
         return sharedPreferences;
+    }
+
+    private String toJson(OutterClass.WorkRoutine workoutRoutine){
+        Gson gson = new Gson();
+        return gson.toJson(workoutRoutine);
+    }
+
+    private OutterClass.WorkRoutine fromJson(String workoutRoutineJson){
+        Gson gson = new Gson();
+        Type type;
+        type = new TypeToken<OutterClass.WorkRoutine>(){}.getType();
+        return gson.fromJson(workoutRoutineJson, type);
     }
 
     @Override
@@ -243,36 +263,49 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         Integer currentRepCount = sharedPreferences.getInt(CURRENT_REP_COUNT, defaultRepCount);
         Integer currentExerciseIndex = sharedPreferences.getInt(CURRENT_EXERCISE_INDEX, 0);
 
-        DatabaseReference dbRef = getDbReference();
-        addValueEventHandler(dbRef);
+        //Get current routine from shared pref
+        String currentRoutineJson = sharedPreferences.getString(CURRENT_ROUTINE, "");
+        OutterClass.WorkRoutine currentRoutine;
+        currentRoutine = fromJson(currentRoutineJson);
 
-        OutterClass.Exercise currentExercise = null;
-        if(currentExerciseIndex <= this.routine.Excerises.size() -1){
-           currentExercise = this.routine.Excerises.get(currentExerciseIndex);
-        }
+        //DatabaseReference dbRef = getDbReference();
+        //addValueEventHandler(dbRef);
 
-        switch (actionName){
-            case NEXT_ACTION_NAME:
-                this.onNextClickHandler(currentExerciseIndex, editor);
-                break;
-            case FINISH_ACTION_NAME:
-                this.onFinishClickHandler(currentExercise, currentRepCount, defaultRepCount, editor);
-                break;
-            case REP_PLUS_ACTION_NAME:
-                this.increaseReps(currentRepCount, editor);
-                break;
-            case REP_MINUS_ACTION_NAME:
-                this.decreaseReps(currentRepCount, editor);
-                break;
-        }
+        if(currentRoutine != null){
+            OutterClass.Exercise currentExercise = null;
+            if(currentExerciseIndex <= currentRoutine.Excerises.size() - 1){
+                currentExercise = currentRoutine.Excerises.get(currentExerciseIndex);
+            }
 
-        System.out.println("CurrentExercise: " + currentExercise);
-        if(currentExercise != null){
-            setText(currentExercise, currentRepCount, remoteViews);
+            switch (actionName){
+                case NEXT_ACTION_NAME:
+                    this.onNextClickHandler(currentExerciseIndex, currentRoutine.Excerises.size(), editor);
+                    break;
+                case FINISH_ACTION_NAME:
+                    this.onFinishClickHandler(currentRoutine, currentExercise, currentRepCount, defaultRepCount, editor);
+                    break;
+                case REP_PLUS_ACTION_NAME:
+                    this.increaseReps(currentRepCount, editor);
+                    break;
+                case REP_MINUS_ACTION_NAME:
+                    this.decreaseReps(currentRepCount, editor);
+                    break;
+            }
 
-            ComponentName componentName = new ComponentName(context, SimpleWidgetProvider.class);
-            AppWidgetManager instance = AppWidgetManager.getInstance(context);
-            instance.updateAppWidget(componentName, remoteViews);
+            //save currentRoutine to sharedPref
+            String json = toJson(currentRoutine);
+            editor.putString(CURRENT_ROUTINE, json);
+            editor.apply();
+
+            System.out.println("CurrentExercise: " + currentExercise);
+            if(currentExercise != null){
+                int currentSet = currentRoutine.CurrentWorkout.GetCurrentSet(currentExercise);
+                setText(currentSet ,currentExercise, currentRepCount, remoteViews);
+
+                ComponentName componentName = new ComponentName(context, SimpleWidgetProvider.class);
+                AppWidgetManager instance = AppWidgetManager.getInstance(context);
+                instance.updateAppWidget(componentName, remoteViews);
+            }
         }
 
         super.onReceive(context, intent);
