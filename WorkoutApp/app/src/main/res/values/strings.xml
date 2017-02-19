@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">Workout App</string>
     <string name="action_settings">Settings</string>
+    <string name="finish_set_button_text">Finish Set</string>
+    <string name="next_button_text">Next</string>
+    <string name="rep_plus_button_text">Rep +</string>
+    <string name="rep_minus_button_text">Rep -</string>
+    <string name="perf_file">com.vincent.widget.PREFERENCE_FILE_KEY</string>
+    <integer name="default_rep_count">8</integer>
 </resources>
