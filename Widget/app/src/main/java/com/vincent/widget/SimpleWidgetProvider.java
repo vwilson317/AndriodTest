@@ -17,8 +17,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
+//import com.google.gson.*;
+//import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -237,15 +238,18 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     }
 
     private String toJson(OutterClass.WorkRoutine workoutRoutine){
-        Gson gson = new Gson();
-        return gson.toJson(workoutRoutine);
+//        Gson gson = new Gson();
+//        return gson.toJson(workoutRoutine);
+        return "";
     }
 
     private OutterClass.WorkRoutine fromJson(String workoutRoutineJson){
-        Gson gson = new Gson();
-        Type type;
-        type = new TypeToken<OutterClass.WorkRoutine>(){}.getType();
-        return gson.fromJson(workoutRoutineJson, type);
+//        Gson gson = new Gson();
+//        Type type;
+//        type = new TypeToken<OutterClass.WorkRoutine>(){}.getType();
+//        return gson.fromJson(workoutRoutineJson, type);
+        //MapperObject mapper = new MapperObject();
+        return null;
     }
 
     @Override
