@@ -1,0 +1,51 @@
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/widget_margin"
+        android:background="#55000000">
+
+        <Button
+            android:id="@+id/actionButton"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_weight="2.28"
+            android:text="@string/next_button_text"/>
+
+        <Button
+            android:id="@+id/finishSetButton"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_weight="1.94"
+            android:text="@string/finish_set_button_text"
+            android:layout_below="@+id/actionButton"
+            android:layout_alignParentStart="true" />
+
+            <Button
+            android:id="@+id/repPlusButton"
+            android:layout_width="60dp"
+            android:layout_height="110dp"
+            android:layout_weight="1.94"
+            android:text="@string/rep_plus_button_text"
+                android:layout_below="@+id/finishSetButton"
+                android:layout_alignParentEnd="true" />
+
+            <Button
+                android:id="@+id/repMinusButton"
+                android:layout_width="60dp"
+                android:layout_weight="1.94"
+                android:text="@string/rep_minus_button_text"
+                android:layout_height="110dp"
+                android:layout_below="@+id/finishSetButton"
+                android:layout_toStartOf="@+id/repPlusButton" />
+
+            <TextView
+                android:id="@+id/displayTextView"
+                android:layout_width="180dp"
+                android:layout_weight="4"
+                android:gravity="center"
+                android:textSize="@dimen/abc_text_size_large_material"
+                android:textStyle="bold"
+                android:layout_height="110dp"
+                android:layout_below="@+id/finishSetButton"
+                android:layout_alignParentStart="true" />
+    </RelativeLayout>
