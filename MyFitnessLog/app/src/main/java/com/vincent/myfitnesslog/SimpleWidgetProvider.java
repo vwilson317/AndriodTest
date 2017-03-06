@@ -1,4 +1,4 @@
-package com.vincent.workoutapp;
+package com.vincent.myfitnesslog;
 
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -19,9 +19,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 //import com.google.gson.*;
 //import com.google.gson.reflect.TypeToken;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -47,22 +45,12 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onEnabled(Context context){
-        System.out.println("*** SimpleWidget onUpdate called");
 
-        SharedPreferences sharedPreferences = getSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
     }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         Log.w("*** SimpleWidget", "onUpdate called");
-
-        // Build the intent to call the service
-        Intent intent = new Intent(context.getApplicationContext(), UpdateWidgetService.class);
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-
-        // Update the widgets via the service
-        context.startService(intent);
 
         SharedPreferences sharedPreferences = getSharedPreferences(context);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -71,33 +59,19 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
         final int count = appWidgetIds.length;
         DatabaseReference myRef = getDbReference();
 
-        OutterClass.WorkRoutine routine = null;
-        OutterClass.Exercise currentExercise = null;
-        String currentRoutineJson = sharedPreferences.getString(CURRENT_ROUTINE, "");
-        if (currentRoutineJson == "" || currentRoutineJson == null){
-        routine = new OutterClass.WorkRoutine("Test Routine");
+        OutterClass.WorkRoutine routine = new OutterClass.WorkRoutine("Test Routine");
+
+        //Save data to realtime db
+        //DatabaseReference routineRef = myRef.child("routines");
+        //addValueEventHandler(myRef);
 
         boolean dips = Collections.addAll(routine.Excerises, new OutterClass.Exercise[]{
                 new OutterClass.Exercise("Chest Press"),
                 new OutterClass.Exercise("Dumbbell Flys"),
                 new OutterClass.Exercise("Dips")});
-
-        editor.putString(CURRENT_ROUTINE, toJson(routine));
-        editor.apply();
-        //Save data to realtime db
-        //DatabaseReference routineRef = myRef.child("routines");
-        //addValueEventHandler(myRef);
-
         //routineRef.setValue(routine);
-        }
-        else{
-            routine = fromJson(currentRoutineJson);
-        }
+        OutterClass.Exercise currentExercise = routine.Excerises.get(0);
 
-        if(routine != null || routine.Excerises.size() > 0) {
-            System.out.println("Bad routine: Json = " + currentRoutineJson);
-            currentExercise = routine.Excerises.get(0);
-        }
         //TODO: make widget a collection for all configured workout routines
 
         for (int i = 0; i < count; i++) {
@@ -264,19 +238,18 @@ public class SimpleWidgetProvider extends AppWidgetProvider {
     }
 
     private String toJson(OutterClass.WorkRoutine workoutRoutine){
-        Gson gson = new Gson();
-        return gson.toJson(workoutRoutine);
-        //return "";
+//        Gson gson = new Gson();
+//        return gson.toJson(workoutRoutine);
+        return "";
     }
 
     private OutterClass.WorkRoutine fromJson(String workoutRoutineJson){
-        Gson gson = new Gson();
-        Type type;
-        type = new TypeToken<OutterClass.WorkRoutine>(){}.getType();
-        return gson.fromJson(workoutRoutineJson, type);
-        //ObjectMapper mapper = new ObjectMapper();
-        //mapper.
-        //return null;
+//        Gson gson = new Gson();
+//        Type type;
+//        type = new TypeToken<OutterClass.WorkRoutine>(){}.getType();
+//        return gson.fromJson(workoutRoutineJson, type);
+        //MapperObject mapper = new MapperObject();
+        return null;
     }
 
     @Override

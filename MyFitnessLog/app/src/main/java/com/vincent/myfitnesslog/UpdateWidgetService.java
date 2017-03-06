@@ -1,4 +1,4 @@
-package com.vincent.workoutapp;
+package com.vincent.myfitnesslog;
 
 import android.app.PendingIntent;
 import android.app.Service;
@@ -11,7 +11,7 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 /**
- * Created by vincent on 2/19/17.
+ * Created by vincent on 3/5/17.
  */
 
 public class UpdateWidgetService extends Service {
@@ -49,7 +49,7 @@ public class UpdateWidgetService extends Service {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this.getApplicationContext());
         int[] allWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
 
-        ComponentName thisWidget = new ComponentName(getApplicationContext(), SimpleWidgetProvider.class);
+        ComponentName thisWidget = new ComponentName(getApplicationContext(), com.vincent.myfitnesslog.SimpleWidgetProvider.class);
         int[] allWidgetIds2 = appWidgetManager.getAppWidgetIds(thisWidget);
         Log.w(LOG, "From Intent" + String.valueOf(allWidgetIds.length));
         Log.w(LOG, "Direct" + String.valueOf(allWidgetIds2.length));

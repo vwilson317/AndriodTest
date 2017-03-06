@@ -1,4 +1,4 @@
-package com.vincent.workoutapp;
+package com.vincent.myfitnesslog;
 
 import java.util.ArrayList;
 import java.util.Dictionary;
